@@ -1,0 +1,159 @@
+rpostgis 1.0.0
+=============
+OVERALL CHANGE
+
+* Initial release to CRAN
+
+* pgGetGeom now handles all regular PostGIS Geometry data table imports
+
+rpostgis 0.10
+=============
+
+OVERALL CHANGE
+
+* Big package cleaning.
+
+* Changed all non-PostGIS related functions to `db-` instead of `pg-`.
+
+* All functions not returning an actual object now returns `TRUE` if
+  successful.
+
+
+rpostgis 0.8.3
+==============
+
+OVERALL CHANGE
+
+* Change 'str' to 'query' + messages instead of cat.
+
+
+rpostgis 0.8.2
+==============
+
+OVERALL CHANGE
+
+* Changed file extension to .R.
+
+
+rpostgis 0.8.1
+==============
+
+OVERALL CHANGE
+
+* Fixed dependencies (DESCRIPTION, namespace, ::).
+
+
+rpostgis 0.8
+============
+
+NEW FUNCTIONS
+
+* `pgPostGIS`: Check and create PostGIS extension.
+
+ENHANCEMENTS
+
+* `pgSchema`: Now returns TRUE if the schema exists (whether it was already available or was just created).
+
+
+rpostgis 0.7
+============
+
+NEW FUNCTIONS
+
+* Initial merge with pgis2r package, incorporating support for loading
+  geometry/raster objects stored in PostgreSQL databases in R, using
+  functions (`pgGetRast`,`pgGetLines`,`pgGetPolys`).
+
+
+rpostgis 0.6.1
+==============
+
+OVERALL CHANGE
+
+* Update for roxygen2 4.0.
+
+
+rpostgis 0.6
+============
+
+NEW FUNCTIONS
+
+* `pgGetPts`: Retrieve point geometries
+
+
+rpostgis 0.5
+============
+
+NEW FUNCTIONS
+
+* `pgColumn`: Add or remove a column (replaces `pgDropColumn`)
+
+OVERALL CHANGES
+
+* Code completely commented and cleaned
+
+
+rpostgis 0.4
+============
+
+NEW FUNCTIONS
+
+* `pgMakePts` and `pgMakeStp`: Add a POINT or LINESTRING geometry field
+
+
+rpostgis 0.3.1
+==============
+
+OVERALL CHANGES
+
+* Global change for `display = TRUE` to print the executed or
+  non-executed query
+
+
+rpostgis 0.3
+============
+
+OVERALL CHANGES
+
+* Non executed examples added for each function
+
+* `display = TRUE` by defaults for all functions
+
+NEW FUNCTIONS
+
+* `pgAsDate`: Converts to timestamp
+
+* `pgDrop`: Drop table/view/schema
+
+* `pgSchema`: Create schema
+
+ENHANCEMENTS
+
+* `pgComment`: Allows comments on schemas
+
+
+rpostgis 0.2
+============
+
+OVERALL CHANGES
+
+* Change the package name to `rtpostgis`
+
+* Change every `db`- function to `pg`- function, in order to avoid
+  confusion with standard `DBI` or `RPostgreSQL` functions
+
+
+RPostgreSQLmod 0.1
+==================
+
+NEW FUNCTIONS
+
+* `dbAddKey`: Add key
+
+* `dbComment`: Comment table/view
+
+* `dbVacuum`: VACUUM
+
+* `dbDropColumn`: Removing a Column
+
+* `dbIndex`: CREATE INDEX
