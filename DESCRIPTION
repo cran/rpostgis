@@ -1,6 +1,6 @@
 Package: rpostgis
-Version: 1.0.0
-Date: 2016-08-20
+Version: 1.0.2
+Date: 2016-09-26
 Title: R Interface to a 'PostGIS' Database
 Description: Provides additional functions to the
     'RPostgreSQL' package to interface R with a 'PostGIS'-enabled
@@ -11,6 +11,7 @@ Authors@R: c(
            c("aut")),
     person("David", "Bucklin", email = "dbucklin@ufl.edu", role =
            c("aut", "cre")) )
+SystemRequirements: 'PostgreSQL' with 'PostGIS' extension
 Depends: R (>= 3.3.0), RPostgreSQL, DBI
 Imports: methods, raster, rgeos, sp, stats
 Suggests: rgdal, wkb
@@ -20,9 +21,9 @@ URL: https://github.com/mablab/rpostgis
 BugReports: https://github.com/mablab/rpostgis/issues
 RoxygenNote: 5.0.1
 NeedsCompilation: no
-Packaged: 2016-08-20 14:11:06 UTC; david
+Packaged: 2016-09-26 18:15:33 UTC; dbucklin
 Author: Mathieu Basille [aut],
   David Bucklin [aut, cre]
 Maintainer: David Bucklin <dbucklin@ufl.edu>
 Repository: CRAN
-Date/Publication: 2016-08-20 16:37:17
+Date/Publication: 2016-09-26 21:26:51
