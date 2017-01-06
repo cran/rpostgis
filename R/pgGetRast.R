@@ -5,18 +5,19 @@
 ##' Retrieve rasters from a PostGIS table.
 ##'
 ##' @param conn A connection object to a PostgreSQL database
-##' @param name A character string specifying a PostgreSQL schema (if
-##'     necessary), and table or view name for the table holding the
-##'     raster (e.g., name = c("schema","table"))
-##' @param rast Name of the column in 'name' holding the raster object
+##' @param name A character string specifying a PostgreSQL schema and
+##'     table/view name holding the geometry (e.g., \code{name =
+##'     c("schema","table")})
+##' @param rast Name of the column in \code{name} holding the raster object
+##' @param band Index number for the band to retrieve (defaults to 1)
 ##' @param digits numeric, precision for detecting whether points are
 ##'     on a regular grid (a low number of digits is a low precision)
-##'     - From rasterFromXYZ function (\code{raster} package)
+##'     - From \code{\link[raster]{rasterFromXYZ}} function (\code{raster} package)
 ##' @param boundary \code{sp} object or numeric. A Spatial* object,
 ##'     whose bounding box will be used to select the part of the
 ##'     raster to import. Alternatively, four numbers
-##'     (e.g. \code{c(north, south, east, west)}) indicating the
-##'     projection-specific limits with which to clip the raster. NULL
+##'     (e.g. \code{c([top], [bottom], [right], [left])}) indicating the
+##'     projection-specific limits with which to clip the raster. \code{boundary = NULL}
 ##'     (default) will return the full raster.
 ##' @author David Bucklin \email{dbucklin@@ufl.edu}
 ##' @importFrom raster rasterFromXYZ
@@ -30,16 +31,16 @@
 ##'     50, 17, 12))
 ##' }
 
-pgGetRast <- function(conn, name, rast = "rast", digits = 9,
+pgGetRast <- function(conn, name, rast = "rast", band = 1, digits = 9,
     boundary = NULL) {
     dbConnCheck(conn)
     if (!suppressMessages(pgPostGIS(conn))) {
       stop("PostGIS is not enabled on this database.")
     }
     ## Check and prepare the schema.name
-    name <- dbTableNameFix(conn,name)
-    nameque <- paste(name, collapse = ".")
-    namechar <- gsub("'","''",paste(gsub('^"|"$', '', name),collapse="."))
+    name1 <- dbTableNameFix(conn,name)
+    nameque <- paste(name1, collapse = ".")
+    namechar <- gsub("'","''",paste(gsub('^"|"$', '', name1),collapse="."))
     ## Check table exists
     tmp.query <- paste0("SELECT r_raster_column AS geo FROM raster_columns\n  WHERE (r_table_schema||'.'||r_table_name) = '",
                         namechar, "';")
@@ -73,7 +74,7 @@ pgGetRast <- function(conn, name, rast = "rast", digits = 9,
     }
     if (is.null(boundary)) {
         trast <- suppressWarnings(dbGetQuery(conn, paste0("SELECT ST_X(ST_Centroid((gv).geom)) AS x, ST_Y(ST_Centroid((gv).geom)) AS y,\n  (gv).val FROM (SELECT ST_PixelAsPolygons(",
-            rast, ") AS gv FROM ", nameque, ") a;")))
+            rast, ",",band,", FALSE) AS gv FROM ", nameque, ") a;")))
     } else {
         if (typeof(boundary) != "double") {
             boundary <- c(boundary@bbox[2, 2], boundary@bbox[2,
@@ -84,12 +85,27 @@ pgGetRast <- function(conn, name, rast = "rast", digits = 9,
             " ", boundary[1], ",", boundary[4], " ", boundary[2],
             ",\n  ", boundary[3], " ", boundary[2], ",", boundary[3],
             " ", boundary[1], ",", boundary[4], " ", boundary[1],
-            "))'),", srid, "))) AS gv FROM ", nameque, "\n  WHERE ST_Intersects(",
+            "))'),", srid, ")),",band,", FALSE) AS gv FROM ", nameque, "\n  WHERE ST_Intersects(",
             rast, ",ST_SetSRID(ST_GeomFromText('POLYGON((", boundary[4],
             " ", boundary[1], ",", boundary[4], " ", boundary[2],
             ",\n  ", boundary[3], " ", boundary[2], ",", boundary[3],
             " ", boundary[1], ",", boundary[4], " ", boundary[1],
             "))'),", srid, "))) a;")))
     }
-    return(raster::rasterFromXYZ(trast, crs = sp::CRS(p4s), digits = digits))
+    rout<-raster::rasterFromXYZ(trast, crs = sp::CRS(p4s), digits = digits)
+    
+    # set NA value
+    ndval<-dbGetQuery(conn, paste0("SELECT st_bandnodatavalue(",
+                                   rast,",",band,") as nd from ",nameque,";"))$nd[1]
+    rout[rout==ndval]<-NA
+    
+    # set layer name
+    if("band_names" %in% dbListFields(conn, name)) {
+      try({
+      lnm<-dbGetQuery(conn, paste0("SELECT DISTINCT band_names[",band,
+                                   "][1] as nm FROM ",nameque,";"))
+      names(rout)<-lnm$nm
+      })
+    }
+    return(rout)
 }

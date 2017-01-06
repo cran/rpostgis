@@ -3,18 +3,18 @@
 ##' Load a PostGIS geometry from a PostgreSQL table/view into R.
 ##'
 ##' Retrieve point, linestring, or polygon geometries from a PostGIS
-##' table/view, and convert it to an R `sp` object (Spatial* or
-##' Spatial*DataFrame).
+##' table/view, and convert it to an R \code{sp} object (\code{Spatial*} or
+##' \code{Spatial*DataFrame}).
 ##'
 ##' @param conn A connection object to a PostgreSQL database
 ##' @param name A character string specifying a PostgreSQL schema and
-##'     table/view name holding the geometry (e.g., `name =
-##'     c("schema","table")`)
-##' @param geom The name of the geometry column. (Default = "geom")
-##' @param gid Name of the column in `name` holding the IDs. Should be
+##'     table/view name holding the geometry (e.g., \code{name =
+##'     c("schema","table")})
+##' @param geom The name of the geometry column. (Default = \code{"geom"})
+##' @param gid Name of the column in \code{name} holding the IDs. Should be
 ##'     unique if additional columns of unique data are being
 ##'     appended. \code{gid=NULL} (default) automatically creates a
-##'     new unique ID for each row in the `sp` object.
+##'     new unique ID for each row in the \code{sp} object.
 ##' @param other.cols Names of specific columns in the table to
 ##'     retrieve, in a character vector (e.g. \code{other.cols=c("col1","col2")}.)
 ##'     The default (\code{other.cols = TRUE}) is to attach
@@ -70,7 +70,13 @@ pgGetGeom <- function(conn, name, geom = "geom", gid = NULL,
     ## prepare geom column
     geomque <- DBI::dbQuoteIdentifier(conn, geom)
     ## prepare clauses
-    clauses <- sub("^where", "AND", clauses, ignore.case = TRUE)
+    if (!is.null(clauses)) {
+      clauses <- sub("^where", "AND", clauses, ignore.case = TRUE) 
+      } else {
+        if (".db_pkid" %in% dbListFields(conn, name)) {
+          clauses <- "ORDER BY \".db_pkid\""
+        }
+      }
     ## prepare other.cols
     if (!is.logical(other.cols)) {
         other.cols <- paste(DBI::dbQuoteIdentifier(conn, other.cols), 
@@ -83,9 +89,10 @@ pgGetGeom <- function(conn, name, geom = "geom", gid = NULL,
         }
     }
     ## check type
-    tmp.query <- paste0("SELECT DISTINCT ST_GeometryType(", geomque, 
-        ") AS type FROM ", nameque, " WHERE ", geomque, " IS NOT NULL ", 
-        clauses, ";")
+    tmp.query <- paste0("SELECT DISTINCT a.geo AS type 
+                        FROM (SELECT ST_GeometryType(", geomque, 
+                        ") as geo FROM ", nameque, " WHERE ", geomque, " IS NOT NULL ", 
+                        clauses, ") a;")
     typ <- dbGetQuery(conn, tmp.query)$type
     # assign to correct function
     if (length(typ) == 0) {
@@ -149,26 +156,32 @@ pgGetPts <- function(conn, name, geom = "geom", gid = NULL, other.cols = "*",
       stop("PostGIS is not enabled on this database.")
     }
     ## Check and prepare the schema.name
-    name <- dbTableNameFix(conn,name)
-    nameque <- paste(name, collapse = ".")
+    name1 <- dbTableNameFix(conn,name)
+    nameque <- paste(name1, collapse = ".")
     ## prepare additional clauses
     clauses<-sub("^where", "AND",clauses, ignore.case = TRUE)
     ## prepare geom column
     geomque<-DBI::dbQuoteIdentifier(conn,geom)
     ## If ID not specified, set it to generate row numbers
     if (is.null(gid)) {
-        gid <- "row_number() over()"
+        if (".R_rownames" %in% dbListFields(conn,name)) {
+          gid <- DBI::dbQuoteIdentifier(conn,".R_rownames")
+        } else {
+          gid <- "row_number() over()"
+        }
     } else {
       gid<-DBI::dbQuoteIdentifier(conn,gid)
     }
     ## Check if MULTI or single geom
-    tmp.query <- paste0("SELECT DISTINCT ST_GeometryType(", geomque,
-        ") AS type FROM ", nameque, " WHERE ", geomque, " IS NOT NULL ",
-        clauses , ";")
+    tmp.query <- paste0("SELECT DISTINCT a.geo AS type 
+                        FROM (SELECT ST_GeometryType(", geomque, 
+                        ") as geo FROM ", nameque, " WHERE ", geomque, " IS NOT NULL ", 
+                        clauses, ") a;")
     typ <- dbGetQuery(conn, tmp.query)
     ## Retrieve the SRID
-    tmp.query <- paste0("SELECT DISTINCT(ST_SRID(", geomque, ")) FROM ",
-        nameque, " WHERE ", geomque, " IS NOT NULL ", clauses , ";")
+    tmp.query <- paste0("SELECT DISTINCT a.s as st_srid FROM
+                        (SELECT ST_SRID(", geomque, ") as s FROM ",
+                        nameque, " WHERE ", geomque, " IS NOT NULL ", clauses , ") a;")
     srid <- dbGetQuery(conn, tmp.query)
     ## Check if the SRID is unique, otherwise throw an error
     if (nrow(srid) > 1) {
@@ -207,9 +220,13 @@ pgGetPts <- function(conn, name, geom = "geom", gid = NULL, other.cols = "*",
             row.names = dbData$tgid), proj4string = proj4)
         ## Append data to spdf if requested
         if (!is.null(other.cols)) {
-            cols <- colnames(dbData)
-            cols <- cols[!(cols %in% c("tgid", "x", "y", geom))]
-            sp <- sp::SpatialPointsDataFrame(sp, dbData[cols],
+            cols <- colnames(dbData)[4:length(colnames(dbData))]
+            cols <- cols[!(cols %in% c(geom))]
+            # column definitions
+            suppressMessages(
+              dfr<-dbReadDataFrame(conn, name, df = dbData[cols])
+            )
+            sp <- sp::SpatialPointsDataFrame(sp, dfr,
                 match.ID = TRUE)
         }
     } else {
@@ -231,9 +248,13 @@ pgGetPts <- function(conn, name, geom = "geom", gid = NULL, other.cols = "*",
         sp <- sp::SpatialMultiPoints(tt, proj4string = proj4)
         ## Append data to spdf if requested
         if (!is.null(other.cols)) {
-            cols <- colnames(dbData)
-            cols <- cols[!(cols %in% c("tgid", "wkt", geom))]
-            sp <- sp::SpatialMultiPointsDataFrame(tt, dbData[cols],
+            cols <- colnames(dbData)[3:length(colnames(dbData))]
+            cols <- cols[!(cols %in% c(geom))]
+            # column definitions
+            suppressMessages(
+              dfr<-dbReadDataFrame(conn, name, df = dbData[cols])
+            )
+            sp <- sp::SpatialMultiPointsDataFrame(tt, dfr,
                 proj4string = proj4)
         }
     }
@@ -266,8 +287,8 @@ pgGetLines <- function(conn, name, geom = "geom", gid = NULL,
       stop("PostGIS is not enabled on this database.")
     }
     ## Check and prepare the schema.name
-    name <- dbTableNameFix(conn,name)
-    nameque <- paste(name, collapse = ".")
+    name1 <- dbTableNameFix(conn,name)
+    nameque <- paste(name1, collapse = ".")
 
     ## prepare additional clauses
     clauses<-sub("^where", "AND",clauses, ignore.case = TRUE)
@@ -276,13 +297,18 @@ pgGetLines <- function(conn, name, geom = "geom", gid = NULL,
     geomque<-DBI::dbQuoteIdentifier(conn,geom)
     ## Check gid
     if (is.null(gid)) {
-        gid <- "row_number() over()"
+        if (".R_rownames" %in% dbListFields(conn,name)) {
+          gid <- DBI::dbQuoteIdentifier(conn,".R_rownames")
+        } else {
+          gid <- "row_number() over()"
+        }
     } else {
       gid<-DBI::dbQuoteIdentifier(conn,gid)
     }
     ## Retrieve the SRID
-    tmp.query <- paste0("SELECT DISTINCT(ST_SRID(", geomque, ")) FROM ",
-        nameque, " WHERE ", geomque, " IS NOT NULL ", clauses , ";")
+    tmp.query <- paste0("SELECT DISTINCT a.s as st_srid FROM
+                        (SELECT ST_SRID(", geomque, ") as s FROM ",
+                        nameque, " WHERE ", geomque, " IS NOT NULL ", clauses , ") a;")
     srid <- dbGetQuery(conn, tmp.query)
     ## Check if the SRID is unique, otherwise throw an error
     if (nrow(srid) > 1) {
@@ -328,10 +354,14 @@ pgGetLines <- function(conn, name, geom = "geom", gid = NULL,
     if (is.null(other.cols)) {
         return(Sline)
     } else {
-        try(dfTemp[geom] <- NULL)
-        try(dfTemp["wkt"] <- NULL)
-        spdf <- sp::SpatialLinesDataFrame(Sline, dfTemp)
-        spdf@data["tgid"] <- NULL
+        cols <- colnames(dfTemp)[3:length(colnames(dfTemp))]
+        cols <- cols[!(cols %in% c(geom))]
+        # column definitions
+        suppressMessages(
+            dfr<-dbReadDataFrame(conn, name, df = dfTemp[cols])
+        )
+        
+        spdf <- sp::SpatialLinesDataFrame(Sline, dfr)
         return(spdf)
     }
 }
@@ -362,21 +392,26 @@ pgGetPolys <- function(conn, name, geom = "geom", gid = NULL,
       stop("PostGIS is not enabled on this database.")
     }
     ## Check and prepare the schema.name
-    name <- dbTableNameFix(conn,name)
-    nameque <- paste(name, collapse = ".")
+    name1 <- dbTableNameFix(conn,name)
+    nameque <- paste(name1, collapse = ".")
     ## prepare additional clauses
     clauses<-sub("^where", "AND",clauses, ignore.case = TRUE)
     ## prepare geom column
     geomque<-DBI::dbQuoteIdentifier(conn,geom)
     ## Check gid
     if (is.null(gid)) {
-        gid <- "row_number() over()"
+        if (".R_rownames" %in% dbListFields(conn,name)) {
+          gid <- DBI::dbQuoteIdentifier(conn,".R_rownames")
+        } else {
+          gid <- "row_number() over()"
+        }
     } else {
       gid<-DBI::dbQuoteIdentifier(conn,gid)
     }
     ## Retrieve the SRID
-    tmp.query <- paste0("SELECT DISTINCT(ST_SRID(", geomque, ")) FROM ",
-        nameque, " WHERE ", geomque, " IS NOT NULL ", clauses , ";")
+    tmp.query <- paste0("SELECT DISTINCT a.s as st_srid FROM
+                        (SELECT ST_SRID(", geomque, ") as s FROM ",
+                        nameque, " WHERE ", geomque, " IS NOT NULL ", clauses , ") a;")
     srid <- dbGetQuery(conn, tmp.query)
     ## Check if the SRID is unique, otherwise throw an error
     if (nrow(srid) > 1) {
@@ -421,10 +456,13 @@ pgGetPolys <- function(conn, name, geom = "geom", gid = NULL,
     if (is.null(other.cols)) {
         return(Spol)
     } else {
-        try(dfTemp[geom] <- NULL)
-        try(dfTemp["wkt"] <- NULL)
-        spdf <- sp::SpatialPolygonsDataFrame(Spol, dfTemp)
-        spdf@data["tgid"] <- NULL
+        cols <- colnames(dfTemp)[3:length(colnames(dfTemp))]
+        cols <- cols[!(cols %in% c(geom))]
+        # column definitions
+        suppressMessages(
+            dfr<-dbReadDataFrame(conn, name, df = dfTemp[cols])
+        )
+        spdf <- sp::SpatialPolygonsDataFrame(Spol, dfr)
         return(spdf)
     }
 }
