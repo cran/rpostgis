@@ -1,13 +1,13 @@
-f11731b93db4074feeb1cddb969b99b8 *DESCRIPTION
+ed5741824a6326ba9d6c491f53cbf6ee *DESCRIPTION
 451942e90e2f76dfb42d708b891706d5 *NAMESPACE
-7ea3ed2e571b89acf4dd47eee42ccd03 *NEWS
+ab7aeb94383ce55159249cf5c74916cc *NEWS
 079d6a1895c0a6ee37b9897ae49d18d3 *R/all_db_wrapper_fns.R
 ccfe3696df077e9eac977153bc878468 *R/data.R
 d40f07142a45a584f5baf9574431d637 *R/dbUtils_notExported.R
-4ffbc57379a97261557e64e74d8b8f98 *R/dbWriteDataFrame.R
+6fe60ab964950370098068a70caedd5a *R/dbWriteDataFrame.R
 b20fa7bf17f8839d223520f97124db6e *R/pgGetBoundary.R
-6f81a25816da6cedf9980ae24b663921 *R/pgGetGeom.R
-14037eb4ee89f51d9740cb82c399a978 *R/pgGetRast.R
+60ba7adc36cbaf24901627b5778bcb40 *R/pgGetGeom.R
+18d6ff4a8cc7c88c571b917589e53cad *R/pgGetRast.R
 81de0168e05867246b3818c43c490955 *R/pgInsert.R
 7e51247dd27fb30de8ab51062a8a59b0 *R/pgInsertize.R
 2112bfc11d972aa7017fff8c6df405dd *R/pgListGeom.R
@@ -21,6 +21,7 @@ bd92ffbfaffe0bf10c298bf564926749 *data/roe_gps_data.rda
 5ed2fe218ebb0eace23e5a52af4aac66 *data/roe_raster.rda
 df0289a2513ed327f41178a20a84ecac *data/roe_sensors_animals_tables.rda
 bdfaff48fdefd0e3f4e8a48018a3d1e1 *data/roe_vector_geom.rda
+a913973b8776d68ae84ad43e9515586f *inst/CITATION
 e57cf78cea2c2ce29dc56522fc67e268 *man/dbAddKey.Rd
 231336c5a320c88bfeaca26ce7ea7b8c *man/dbAsDate.Rd
 8178d6bf8bf061b56c5fb50e523204dc *man/dbBuildTableQuery.Rd
@@ -35,7 +36,7 @@ dc51e1488e8176be05416ad0208e108e *man/dbTableInfo.Rd
 ead06877521d87a4869d5e305cc897eb *man/dbTableNameFix.Rd
 4431399d282925f4f38d00217d24897a *man/dbVacuum.Rd
 72676af870ac974078bbb206b29acd80 *man/dbVersion.Rd
-cd5b9734a0945d2006f565ab5cdd8492 *man/dbWriteDataFrame.Rd
+48896b63fd88f28db98ffc1844f1c225 *man/dbWriteDataFrame.Rd
 3c5d2795c4a22c29fe728577a6a376aa *man/pgGetBoundary.Rd
 92dbac9b3918036f87a5cb53ccb92944 *man/pgGetGeom.Rd
 4acd30ce8e00cdc5c053ab332b6a6fc7 *man/pgGetLines.Rd

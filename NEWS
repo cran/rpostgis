@@ -1,3 +1,14 @@
+rpostgis 1.1.1
+==============
+
+BUG FIXES
+
+* `pgGetGeom`: fixed bug causing failed imports for views due to usage
+  of `RPostgreSQL::dbListFields` (changed to `rpostgis::dbTableInfo`)
+
+* fixed bug for data frame mode writing (e.g., `pgInsert(...,df.mode = TRUE)` 
+  and `dbWriteDataFrame`) where factor names included a comma
+
 rpostgis 1.1.0
 ==============
 
