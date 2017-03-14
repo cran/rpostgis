@@ -2,10 +2,10 @@
 % Please edit documentation in R/pgGetGeom.R
 \name{pgGetGeom}
 \alias{pgGetGeom}
-\title{Load a PostGIS geometry from a PostgreSQL table/view into R.}
+\title{Load a PostGIS geometry from a PostgreSQL table/view/query into R.}
 \usage{
 pgGetGeom(conn, name, geom = "geom", gid = NULL, other.cols = TRUE,
-  clauses = NULL)
+  clauses = NULL, query = NULL)
 }
 \arguments{
 \item{conn}{A connection object to a PostgreSQL database}
@@ -31,14 +31,25 @@ data frame).}
 \item{clauses}{character, additional SQL to append to modify select
 query from table. Must begin with an SQL clause (e.g., "WHERE ...",
 "ORDER BY ...", "LIMIT ..."); see below for examples.}
+
+\item{query}{character, a full SQL query including a geometry column. 
+For use with query mode only (see details).}
 }
 \value{
 sp-class (SpatialPoints*, SpatialMultiPoints*, SpatialLines*, or SpatialPolygons*)
 }
 \description{
 Retrieve point, linestring, or polygon geometries from a PostGIS
-table/view, and convert it to an R \code{sp} object (\code{Spatial*} or
+table/view/query, and convert it to an R \code{sp} object (\code{Spatial*} or
 \code{Spatial*DataFrame}).
+}
+\details{
+The query mode version of \code{pgGetGeom} allows the user to enter a
+complete SQL query (\code{query}) that returns a Geometry column, and save the query
+as a new view (\code{name}) if desired. If (\code{name}) is not specified,
+a temporary view with name ".rpostgis_TEMPview" is used only
+within the function execution. In this mode, the other arguments can be used 
+normally to modify the Spatial* object returned from the query.
 }
 \examples{
 \dontrun{
@@ -55,6 +66,13 @@ pgGetGeom(conn, c("schema", "tablename"), gid = "table_id",
 ## retaining id from table as rownames and with a subset of the data
 pgGetGeom(conn, c("schema", "roads"), geom = "roadgeom", gid = "road_ID",
     other.cols = FALSE, clauses  = "WHERE field = 'highway'")
+## Query mode
+pgGetGeom(conn, query = "SELECT r.gid as id, ST_Buffer(r.geom, 100) as geom 
+                           FROM
+                             schema.roads r,
+                             schema.adm_boundaries b
+                           WHERE 
+                             ST_Intersects(r.geom, b.geom);")
 }
 }
 \author{
@@ -62,4 +80,3 @@ David Bucklin \email{dbucklin@ufl.edu}
 
 Mathieu Basille \email{basille@ufl.edu}
 }
-

@@ -66,7 +66,8 @@
 ##'     exactly match the database table will be inserted into the
 ##'     database table.
 ##' @param overwrite Logical; if true, a new table (\code{name}) will
-##'     overwrite the existing table (\code{name}) in the database.
+##'     overwrite the existing table (\code{name}) in the database. Note:
+##'     overwriting a view must be done manually (e.g., with \code{\link[rpostgis]{dbDrop}}).
 ##' @param new.id Character, name of a new sequential integer ID
 ##'     column to be added to the table for insert (for spatial objects without
 ##'     data frames, this column is created even if left \code{NULL}
@@ -92,6 +93,15 @@
 ##'     \code{NULL}, no conversion will be done.
 ##' @param return.pgi Whether to return a formatted list of insert parameters
 ##'     (i.e., a \code{pgi} object; see function details.)
+##' @param df.geom Character vector, name of a character column in an R data.frame
+##'     storing PostGIS geometries, this argument can be used to insert a geometry
+##'     stored as character type in a data.frame (do not use with Spatial* data types).
+##'     If only the column name is used (e.g., \code{df.geom = "geom"}), 
+##'     the column type will be a generic (GEOMETRY); use a two-length character vector 
+##'     (e.g., \code{df.geom = c("geom", "(POINT,4326)")} to also specify a 
+##'     specific PostGIS geometry type and SRID for the column. Only recommended for
+##'     for new tables/overwrites, since this method will change the 
+##'     existing column type.
 ##' @author David Bucklin \email{dbucklin@@ufl.edu}
 ##' @export
 ##' @return Returns \code{TRUE} if the insertion was successful,
@@ -119,17 +129,17 @@
 
 pgInsert <- function(conn, name, data.obj, geom = "geom", df.mode = FALSE, partial.match = FALSE, 
     overwrite = FALSE, new.id = NULL, row.names = FALSE, upsert.using = NULL,
-    alter.names = FALSE, encoding = NULL, return.pgi = FALSE) {
+    alter.names = FALSE, encoding = NULL, return.pgi = FALSE, df.geom = NULL) {
   
     if (df.mode) {
-      if (!dbExistsTable(conn,name) | overwrite) {
+      if (!dbExistsTable(conn,name, table.only = TRUE) | overwrite) {
         # set necessary argument values
         partial.match <- FALSE
         new.id <- ".db_pkid"
         row.names <- TRUE
         upsert.using <- NULL
         alter.names <- FALSE
-      } else if (!overwrite & dbExistsTable(conn,name)) {
+      } else if (!overwrite & dbExistsTable(conn,name, table.only = TRUE)) {
         stop("df.mode = TRUE only allowed for new tables or with overwrite = TRUE.")
       }
     }
@@ -157,7 +167,7 @@ pgInsert <- function(conn, name, data.obj, geom = "geom", df.mode = FALSE, parti
         }
     }
     ## Check for existing table
-    exists.t <- dbExistsTable(conn, name)
+    exists.t <- dbExistsTable(conn, name, table.only = TRUE)
     if (!exists.t) {
         message("Creating new table...")
         create.table <- name
@@ -233,6 +243,15 @@ pgInsert <- function(conn, name, data.obj, geom = "geom", df.mode = FALSE, parti
     ## Set name of table
     name <- pgi$in.table
     nameque <- dbTableNameFix(conn,name)
+    # df with geom add column
+    if (!is.null(df.geom)) {
+      if (alter.names) df.geom[1]<-tolower(gsub("[+-.,!@$%^&*();/|<>]", "_", df.geom[1]))
+      if (length(df.geom) == 1) df.geom <- list(df.geom, NULL) else df.geom <- as.list(df.geom)
+      try(dbExecute(conn, paste0("ALTER TABLE ", nameque[1], 
+            ".", nameque[2], " ALTER COLUMN ",dbQuoteIdentifier(conn, df.geom[[1]]),
+            " TYPE GEOMETRY",df.geom[[2]],";")))
+    }
+    # end df.geom
     cols <- pgi$db.cols.insert
     values <- pgi$insert.data
     db.cols <- dbTableInfo(conn, name = name)$column_name

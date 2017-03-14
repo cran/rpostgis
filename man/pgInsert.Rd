@@ -8,7 +8,7 @@
 pgInsert(conn, name, data.obj, geom = "geom", df.mode = FALSE,
   partial.match = FALSE, overwrite = FALSE, new.id = NULL,
   row.names = FALSE, upsert.using = NULL, alter.names = FALSE,
-  encoding = NULL, return.pgi = FALSE)
+  encoding = NULL, return.pgi = FALSE, df.geom = NULL)
 
 \method{print}{pgi}(x, ...)
 }
@@ -46,7 +46,8 @@ exactly match the database table will be inserted into the
 database table.}
 
 \item{overwrite}{Logical; if true, a new table (\code{name}) will
-overwrite the existing table (\code{name}) in the database.}
+overwrite the existing table (\code{name}) in the database. Note:
+overwriting a view must be done manually (e.g., with \code{\link[rpostgis]{dbDrop}}).}
 
 \item{new.id}{Character, name of a new sequential integer ID
 column to be added to the table for insert (for spatial objects without
@@ -78,6 +79,16 @@ UTF-8, use \code{encoding = c("latin1", "UTF-8")}. Left
 
 \item{return.pgi}{Whether to return a formatted list of insert parameters
 (i.e., a \code{pgi} object; see function details.)}
+
+\item{df.geom}{Character vector, name of a character column in an R data.frame
+storing PostGIS geometries, this argument can be used to insert a geometry
+stored as character type in a data.frame (do not use with Spatial* data types).
+If only the column name is used (e.g., \code{df.geom = "geom"}), 
+the column type will be a generic (GEOMETRY); use a two-length character vector 
+(e.g., \code{df.geom = c("geom", "(POINT,4326)")} to also specify a 
+specific PostGIS geometry type and SRID for the column. Only recommended for
+for new tables/overwrites, since this method will change the 
+existing column type.}
 
 \item{x}{A list of class \code{pgi}}
 
@@ -149,4 +160,3 @@ pgInsert(conn, name = c("public", "meuse_data"), data.obj = spdf,
 \author{
 David Bucklin \email{dbucklin@ufl.edu}
 }
-

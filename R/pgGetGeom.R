@@ -1,10 +1,17 @@
 # pgGetGeom
 
-##' Load a PostGIS geometry from a PostgreSQL table/view into R.
+##' Load a PostGIS geometry from a PostgreSQL table/view/query into R.
 ##'
 ##' Retrieve point, linestring, or polygon geometries from a PostGIS
-##' table/view, and convert it to an R \code{sp} object (\code{Spatial*} or
+##' table/view/query, and convert it to an R \code{sp} object (\code{Spatial*} or
 ##' \code{Spatial*DataFrame}).
+##' 
+##' The query mode version of \code{pgGetGeom} allows the user to enter a
+##' complete SQL query (\code{query}) that returns a Geometry column, and save the query
+##' as a new view (\code{name}) if desired. If (\code{name}) is not specified,
+##' a temporary view with name ".rpostgis_TEMPview" is used only
+##' within the function execution. In this mode, the other arguments can be used 
+##' normally to modify the Spatial* object returned from the query.
 ##'
 ##' @param conn A connection object to a PostgreSQL database
 ##' @param name A character string specifying a PostgreSQL schema and
@@ -24,6 +31,8 @@
 ##' @param clauses character, additional SQL to append to modify select
 ##'     query from table. Must begin with an SQL clause (e.g., "WHERE ...",
 ##'     "ORDER BY ...", "LIMIT ..."); see below for examples.
+##' @param query character, a full SQL query including a geometry column. 
+##'     For use with query mode only (see details).
 ##' @return sp-class (SpatialPoints*, SpatialMultiPoints*, SpatialLines*, or SpatialPolygons*)
 ##' @export
 ##' @author David Bucklin \email{dbucklin@@ufl.edu}
@@ -44,13 +53,26 @@
 ##' ## retaining id from table as rownames and with a subset of the data
 ##' pgGetGeom(conn, c("schema", "roads"), geom = "roadgeom", gid = "road_ID",
 ##'     other.cols = FALSE, clauses  = "WHERE field = 'highway'")
+##' ## Query mode
+##' pgGetGeom(conn, query = "SELECT r.gid as id, ST_Buffer(r.geom, 100) as geom 
+##'                            FROM
+##'                              schema.roads r,
+##'                              schema.adm_boundaries b
+##'                            WHERE 
+##'                              ST_Intersects(r.geom, b.geom);")
 ##' }
 
 pgGetGeom <- function(conn, name, geom = "geom", gid = NULL, 
-    other.cols = TRUE, clauses = NULL) {
+    other.cols = TRUE, clauses = NULL, query = NULL) {
     dbConnCheck(conn)
     if (!suppressMessages(pgPostGIS(conn))) {
         stop("PostGIS is not enabled on this database.")
+    }
+    if (!is.null(query)) {
+      if (missing(name)) name <- NULL
+      ret <- pgGetGeomQ(conn, query, name = name, geom = geom, gid = gid, 
+                        other.cols = other.cols, clauses = clauses)
+      if (is.null(ret)) stop("Query retrieval failed.", call. = FALSE) else return(ret)
     }
     ## Check and prepare the schema.name
     nameque <- paste(dbTableNameFix(conn,name), collapse = ".")
@@ -465,4 +487,51 @@ pgGetPolys <- function(conn, name, geom = "geom", gid = NULL,
         spdf <- sp::SpatialPolygonsDataFrame(Spol, dfr)
         return(spdf)
     }
+}
+
+
+# pgGetGeomQ
+
+#' Load geometries from a full query and return a Spatial* object
+#' 
+#' @param query character, a full SQL query including a geometry column. 
+#' @param name optional character string specifying
+#'     a PostgreSQL schema and view name (e.g., \code{name = c("schema","view")}) 
+#'     to save the query as. If NULL, a temporary view ".rpostgis_TEMPview" is used
+#'     temporarily (only within the function scope).
+#' @param ... For \code{pgGetGeomQ}, other arguments as in \code{pgGetGeom}
+#' @keywords internal
+
+pgGetGeomQ <- function(conn, query, name = NULL, ...) {
+    # set view name
+    if (is.null(name)) {
+        name <- ".rpostgis_TEMPview"
+        keep <- FALSE
+    } else {
+        keep <- TRUE
+    }
+    dbExecute(conn, "BEGIN;")
+    # try to create view and retrieve geometries
+    geo <- NULL
+    try({
+        prequery <- paste0("CREATE OR REPLACE VIEW ", paste(dbQuoteIdentifier(conn, 
+            name), collapse = "."), " AS ")
+        if (sub(".*(?=.$)", "", sub("\\s+$", "", query), perl = T) == 
+            ";") {
+            post <- NULL
+        } else {
+            post <- ";"
+        }
+        q <- paste0(prequery, query, post)
+        dbExecute(conn, q)
+        geo <- pgGetGeom(conn, name = name, ...)
+    })
+    # rollback on failed/not saving view, else commit
+    if (is.null(geo)) {
+        dbExecute(conn, "ROLLBACK;")
+    } else {
+        if (!keep) 
+            dbExecute(conn, "ROLLBACK;") else dbExecute(conn, "COMMIT;")
+    }
+    return(geo)
 }

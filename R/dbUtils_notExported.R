@@ -111,21 +111,42 @@ dbBuildTableQuery <- function (conn = NULL, name, obj, field.types = NULL, row.n
 }
 
 ## dbExistsTable
-##' Check if a PostgreSQL table exists
+##' Check if a PostgreSQL table/view exists
 ##' 
 ##' @param conn A PostgreSQL connection
-##' @param name Table name string, length 1-2.
+##' @param name Table/view name string, length 1-2.
 ##' 
 ##' @keywords internal
 
-dbExistsTable <- function (conn, name) {
+dbExistsTable <- function (conn, name, table.only = FALSE) {
+    if (!table.only) to<-NULL else to<-" AND table_type = 'BASE TABLE'"
     full.name<-dbTableNameFix(conn,name, as.identifier = FALSE)
     chk<-dbGetQuery(conn, paste0("SELECT 1 FROM information_schema.tables 
                WHERE table_schema = ",dbQuoteString(conn,full.name[1]),
-               " AND table_name = ",dbQuoteString(conn,full.name[2]),";"))[1,1]
-    if (is.null(chk) || is.na(chk)) {exists.t<-FALSE} else {exists.t<-TRUE}
-    return(exists.t)
+               " AND table_name = ",dbQuoteString(conn,full.name[2]),to,";"))[1,1]
+    if (is.null(chk)) {
+      exists.t <- FALSE
+      # check version (matviews >= 9.3)
+      ver<-dbVersion(conn)
+      if (!table.only & !(ver[1] < 9 | (ver[1] == 9 && ver[2] < 3))) {
+        # matview case - not in information_schema
+        chk2<-dbGetQuery(conn, paste0("SELECT oid::regclass::text, relname
+                FROM pg_class
+                WHERE relkind = 'm'
+                AND relname = ",dbQuoteString(conn,full.name[2]),";"))
+        if (length(names(chk2)) > 0) {
+          sch<-gsub(paste0(".",chk2[1,2]),"",chk2[,1])
+          if (full.name[1] %in% sch) exists.t<-TRUE else exists.t<-FALSE
+        } else {
+          exists.t<-FALSE
+        }
+      }
+    } else {
+    exists.t<-TRUE
+    }
+  return(exists.t)
 }
+
 
 ## dbConnCheck
 ##' Check if a supported PostgreSQL connection
