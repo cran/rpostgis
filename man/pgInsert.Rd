@@ -8,7 +8,7 @@
 pgInsert(conn, name, data.obj, geom = "geom", df.mode = FALSE,
   partial.match = FALSE, overwrite = FALSE, new.id = NULL,
   row.names = FALSE, upsert.using = NULL, alter.names = FALSE,
-  encoding = NULL, return.pgi = FALSE, df.geom = NULL)
+  encoding = NULL, return.pgi = FALSE, df.geom = NULL, geog = FALSE)
 
 \method{print}{pgi}(x, ...)
 }
@@ -29,7 +29,7 @@ table.}
 \item{data.obj}{A \code{Spatial*} or \code{Spatial*DataFrame}, or \code{data.frame}}
 
 \item{geom}{character string. For \code{Spatial*} datasets, the name of
-geometry column in the database table.  (existing or to be
+geometry/(geography) column in the database table.  (existing or to be
 created; defaults to \code{"geom"}).}
 
 \item{df.mode}{Logical; Whether to write the (Spatial) data frame in data frame mode 
@@ -89,6 +89,9 @@ the column type will be a generic (GEOMETRY); use a two-length character vector
 specific PostGIS geometry type and SRID for the column. Only recommended for
 for new tables/overwrites, since this method will change the 
 existing column type.}
+
+\item{geog}{Logical; Whether to write the spatial data as a PostGIS 
+'GEOGRPAHY' type.}
 
 \item{x}{A list of class \code{pgi}}
 

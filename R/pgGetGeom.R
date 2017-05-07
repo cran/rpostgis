@@ -17,7 +17,7 @@
 ##' @param name A character string specifying a PostgreSQL schema and
 ##'     table/view name holding the geometry (e.g., \code{name =
 ##'     c("schema","table")})
-##' @param geom The name of the geometry column. (Default = \code{"geom"})
+##' @param geom The name of the geometry/(geography) column. (Default = \code{"geom"})
 ##' @param gid Name of the column in \code{name} holding the IDs. Should be
 ##'     unique if additional columns of unique data are being
 ##'     appended. \code{gid=NULL} (default) automatically creates a
@@ -78,19 +78,9 @@ pgGetGeom <- function(conn, name, geom = "geom", gid = NULL,
     nameque <- paste(dbTableNameFix(conn,name), collapse = ".")
     namechar <- gsub("\"\"", "\"", gsub("'", "''", paste(gsub("^\"|\"$", 
         "", dbTableNameFix(conn,name)), collapse = ".")))
-    ## Check table exists
-    tmp.query <- paste0("SELECT f_geometry_column AS geo FROM geometry_columns\nWHERE 
-        (f_table_schema||'.'||f_table_name) = '", 
-        namechar, "';")
-    tab.list <- dbGetQuery(conn, tmp.query)$geo
-    if (is.null(tab.list)) {
-        stop(paste0("Table/view '", namechar, "' is not listed in geometry_columns."))
-    } else if (!geom %in% tab.list) {
-        stop(paste0("Table/view '", namechar, "' geometry column not found. Available geometry columns: ", 
-            paste(tab.list, collapse = ", ")))
-    }
-    ## prepare geom column
-    geomque <- DBI::dbQuoteIdentifier(conn, geom)
+    
+    geomque <- pgCheckGeom(conn, namechar, geom)
+    
     ## prepare clauses
     if (!is.null(clauses)) {
       clauses <- sub("^where", "AND", clauses, ignore.case = TRUE) 
@@ -183,7 +173,9 @@ pgGetPts <- function(conn, name, geom = "geom", gid = NULL, other.cols = "*",
     ## prepare additional clauses
     clauses<-sub("^where", "AND",clauses, ignore.case = TRUE)
     ## prepare geom column
-    geomque<-DBI::dbQuoteIdentifier(conn,geom)
+    namechar <- gsub("\"\"", "\"", gsub("'", "''", paste(gsub("^\"|\"$", 
+        "", dbTableNameFix(conn,name)), collapse = ".")))
+    geomque <- pgCheckGeom(conn, namechar, geom)
     ## If ID not specified, set it to generate row numbers
     if (is.null(gid)) {
         if (".R_rownames" %in% dbTableInfo(conn,name)$column_name) {
@@ -226,19 +218,19 @@ pgGetPts <- function(conn, name, geom = "geom", gid = NULL, other.cols = "*",
         ## Get data
         if (is.null(other.cols)) {
             tmp.query <- paste0("SELECT ", gid, " AS tgid,ST_X(",
-                geomque, ") AS x, ST_Y(", geomque, ") AS y FROM ",
+                geomque, ") AS x_z39mxd3, ST_Y(", geomque, ") AS y_z39mxd3 FROM ",
                 nameque, " WHERE ", geomque, " IS NOT NULL ", clauses ,
                 ";")
         } else {
             tmp.query <- paste0("SELECT ", gid, " AS tgid,ST_X(",
-                geomque, ") AS x, ST_Y(", geomque, ") AS y,", other.cols,
+                geomque, ") AS x_z39mxd3, ST_Y(", geomque, ") AS y_z39mxd3,", other.cols,
                 " FROM ", nameque, " WHERE ", geomque, " IS NOT NULL ",
                 clauses , ";")
         }
         dbData <- suppressWarnings(dbGetQuery(conn, tmp.query))
         row.names(dbData) <- dbData$tgid
         ## Generate a SpatialPoints object
-        sp <- sp::SpatialPoints(data.frame(x = dbData$x, y = dbData$y,
+        sp <- sp::SpatialPoints(data.frame(x = dbData$x_z39mxd3, y = dbData$y_z39mxd3,
             row.names = dbData$tgid), proj4string = proj4)
         ## Append data to spdf if requested
         if (!is.null(other.cols)) {
@@ -246,7 +238,7 @@ pgGetPts <- function(conn, name, geom = "geom", gid = NULL, other.cols = "*",
             cols <- cols[!(cols %in% c(geom))]
             # column definitions
             suppressMessages(
-              dfr<-dbReadDataFrame(conn, name, df = dbData[cols])
+              dfr<-dbReadDataFrame(conn, name, df = dbData[,4:length(colnames(dbData))][cols])
             )
             sp <- sp::SpatialPointsDataFrame(sp, dfr,
                 match.ID = TRUE)
@@ -274,7 +266,7 @@ pgGetPts <- function(conn, name, geom = "geom", gid = NULL, other.cols = "*",
             cols <- cols[!(cols %in% c(geom))]
             # column definitions
             suppressMessages(
-              dfr<-dbReadDataFrame(conn, name, df = dbData[cols])
+              dfr<-dbReadDataFrame(conn, name, df = dbData[,3:length(colnames(dbData))][cols])
             )
             sp <- sp::SpatialMultiPointsDataFrame(tt, dfr,
                 proj4string = proj4)
@@ -316,7 +308,9 @@ pgGetLines <- function(conn, name, geom = "geom", gid = NULL,
     clauses<-sub("^where", "AND",clauses, ignore.case = TRUE)
     
     ## prepare geom column
-    geomque<-DBI::dbQuoteIdentifier(conn,geom)
+    namechar <- gsub("\"\"", "\"", gsub("'", "''", paste(gsub("^\"|\"$", 
+        "", dbTableNameFix(conn,name)), collapse = ".")))
+    geomque <- pgCheckGeom(conn, namechar, geom)
     ## Check gid
     if (is.null(gid)) {
         if (".R_rownames" %in% dbTableInfo(conn,name)$column_name) {
@@ -380,7 +374,7 @@ pgGetLines <- function(conn, name, geom = "geom", gid = NULL,
         cols <- cols[!(cols %in% c(geom))]
         # column definitions
         suppressMessages(
-            dfr<-dbReadDataFrame(conn, name, df = dfTemp[cols])
+            dfr<-dbReadDataFrame(conn, name, df = dfTemp[,3:length(colnames(dfTemp))][cols])
         )
         
         spdf <- sp::SpatialLinesDataFrame(Sline, dfr)
@@ -419,7 +413,9 @@ pgGetPolys <- function(conn, name, geom = "geom", gid = NULL,
     ## prepare additional clauses
     clauses<-sub("^where", "AND",clauses, ignore.case = TRUE)
     ## prepare geom column
-    geomque<-DBI::dbQuoteIdentifier(conn,geom)
+    namechar <- gsub("\"\"", "\"", gsub("'", "''", paste(gsub("^\"|\"$", 
+        "", dbTableNameFix(conn,name)), collapse = ".")))
+    geomque <- pgCheckGeom(conn, namechar, geom)
     ## Check gid
     if (is.null(gid)) {
         if (".R_rownames" %in% dbTableInfo(conn,name)$column_name) {
@@ -482,7 +478,7 @@ pgGetPolys <- function(conn, name, geom = "geom", gid = NULL,
         cols <- cols[!(cols %in% c(geom))]
         # column definitions
         suppressMessages(
-            dfr<-dbReadDataFrame(conn, name, df = dfTemp[cols])
+            dfr<-dbReadDataFrame(conn, name, df = dfTemp[,3:length(colnames(dfTemp))][cols])
         )
         spdf <- sp::SpatialPolygonsDataFrame(Spol, dfr)
         return(spdf)
