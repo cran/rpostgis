@@ -37,7 +37,7 @@
 #'     overwriting a view must be done manually (e.g., with \code{\link[rpostgis]{dbDrop}}).
 #' @param only.defs Logical; if \code{TRUE}, only the table
 #'     definitions will be written.
-#' @author David Bucklin \email{dbucklin@@ufl.edu}
+#' @author David Bucklin \email{david.bucklin@@gmail.com}
 #' @aliases dbWriteDF
 #' @export
 #' @return \code{TRUE} for successful write with
@@ -105,7 +105,7 @@ dbWriteDataFrame <- function(conn, name, df, overwrite = FALSE,
     ## modular handling of different data type attributes (add new
     ## below)
 
-    ## 1. handle attribute (time zones)
+    ## handle attribute (time zones)
     attr2 <- lapply(d[1, ], function(x) {
         attr(x, "tzone")[1]
     })
@@ -115,22 +115,30 @@ dbWriteDataFrame <- function(conn, name, df, overwrite = FALSE,
     attr2[badtz] <- "NULL"
     attr2 <- unlist(attr2)
 
-    ## convert non-matching tz time to db tz
+    ## convert non-matching tz time to db tz (runs but values unchanged in posixlt objects)
     pgtz <- dbGetQuery(conn, "SHOW timezone;")[1, 1]
     tzl <- names(attr2[attr2 != "NULL" & attr2 != pgtz])
     for (t in tzl) {
         eval(parse(text = paste0("attributes(d$", t, ")$tzone <- pgtz")))
     }
 
-    ## 2. handle attribute (factor levels)
+    ## handle attribute (factor levels)
     fact <- unlist(lapply(d[1, ], function(x) {
         paste0("/*/", paste(attr(x, "levels"), collapse = "/*/"),
             "/*/")
     }))
     fact <- gsub(",", "\\,", fact, fixed = TRUE)
     attr2[!fact == "/*//*/"] <- fact[!fact == "/*//*/"]
-
-    ## 3. #####
+    ## end factor
+    
+    ## handle spatial p4s (found using .rpostgis.geom. in column name, from pgInsert)
+    sp.index <- grep(".rpostgis.geom.",names(d))
+    if (length(sp.index) > 0) {
+      types[sp.index] <- "Spatial"
+      attr2[sp.index] <- paste0('"',d[,sp.index][1],'"') # double quote for array
+      names(d)[sp.index] <- gsub(".rpostgis.geom.","",names(d)[sp.index])
+    }
+    ## end spatial
 
     ## end modular handling of different data type attributes
 
@@ -180,24 +188,48 @@ dbReadDataFrame <- function(conn, name, df = NULL) {
     if (!dbExistsTable(conn, c(name[1], ".R_df_defs"), table.only = TRUE)) {
         message("R data frame definitions table not found. Using standard import...")
         if (is.null(df)) {
-            return(dbReadTable(conn, name))
+            df <- dbReadTable(conn, name)
+            if (".R_rownames" %in% colnames(df)) {
+              # still read rownames if exist
+               try({
+                 row.names(df) <- df$.R_rownames
+                 df$.R_rownames <- NULL
+                })
+            }
+            return(df)
         } else {
+            if (".R_rownames" %in% colnames(df)) {
+                  # still read rownames if exist
+                  try({
+                  row.names(df) <- df$.R_rownames
+                  df$.R_rownames <- NULL
+                  })
+                }
             return(df)
         }
     } else {
-        sql_query <- paste0("SELECT unnest(df_def[1:1]) as nms,
-                            unnest(df_def[2:2]) as defs,
-                            unnest(df_def[3:3]) as atts
-                            FROM ",
-            nameque[1], ".\".R_df_defs\" WHERE table_nm = ",
-            dbQuoteString(conn, name[2]), ";")
-        defs <- dbGetQuery(conn, sql_query)
-
+        defs <- dbGetDefs(conn, name)
+        
         if (length(defs) == 0) {
             message("R data frame definitions not found. Using standard import...")
             if (is.null(df)) {
-                return(dbReadTable(conn, name))
+                df <- dbReadTable(conn, name)
+                if (".R_rownames" %in% colnames(df)) {
+                  # still read rownames if exist
+                  try({
+                  row.names(df) <- df$.R_rownames
+                  df$.R_rownames <- NULL
+                  })
+                }
+                return(df)
             } else {
+                if (".R_rownames" %in% colnames(df)) {
+                  # still read rownames if exist
+                  try({
+                  row.names(df) <- df$.R_rownames
+                  df$.R_rownames <- NULL
+                  })
+                }              
                 return(df)
             }
         }
@@ -230,7 +262,7 @@ dbReadDataFrame <- function(conn, name, df = NULL) {
                     ""], ordered = ordered)
                 }
                 ## handle POSIX time zones
-                if (att$defs %in% c("POSIXct", "POSIXlt", "POSIXt")) {
+                if (att$defs %in% c("POSIXct", "POSIXt")) {
                   d[, i] <- list(eval(parse(text = paste0("as.",
                     att$defs, "(as.character(d[,i]),
                                       tz='",
@@ -238,6 +270,11 @@ dbReadDataFrame <- function(conn, name, df = NULL) {
                   ## assign R tz
                   eval(parse(text = paste0("attributes(d$", i,
                     ")$tzone <- att$atts")))
+                }
+                if (att$defs == "POSIXlt") {
+                    d[, i] <- list(eval(parse(text = paste0("as.", 
+                      att$defs, "(as.character(d[,i]),
+                                          tz=att$atts)"))))
                 }
                 ## end modular handling of different data types
             } else {

@@ -1,3 +1,70 @@
+rpostgis 1.3.0
+==============
+
+OVERALL CHANGES
+
+* example data removed, now part of extension package `rpostgisLT`
+
+NEW FUNCTIONS
+
+* `pgListRast` to list all raster columns in a PostGIS database
+
+NEW FEATURES
+
+* `pgGetRast`: re-written for faster reading of rasters from the database. Multi-band
+raster import is now supported (`band` argument changed to `bands`, and can be given a vector of integers,
+or TRUE to return all bands). Default is still to import the first band (1) of the raster. 
+Multi-band rasters imported as `RasterBrick`-class objects. When raster blocks have imperfect alignment,
+PostGIS function `ST_SnapToGrid` is applied to register the raster according to the upper left pixel
+of the full raster dataset.
+
+* `pgGetRast`/`pgWriteRast`: now support sp-class `SpatialGrid*` and `SpatialPixels*`
+type objects. The class of the raster written in pgWriteRast is saved in a database column,
+and re-applied to the raster during import with `pgGetRast`.
+
+* "Data frame mode" for Spatial* objects: now saves proj4string of Spatial* objects
+in data frame mode writing with `pgInsert`. It is then re-imported using `pgGetGeom`, if 
+the saved proj4string and the database proj4string (defined by the column's SRID) are
+equivalent. Otherwise, the database proj4string is used.
+
+* `pgGetRast`/`pgWriteRast`: original R proj4string is saved in the raster database table,
+and re-imported, if the saved proj4string and the database proj4string (defined by the column's SRID) are
+equivalent. Otherwise, the database proj4string is used.
+
+* `pgGetGeom`: now includes `boundary` parameter, to spatially subset
+GEOMETRY/GEOGRPAHY objects to return (same usage as in `pgGetRast`)
+
+* `pgGetBoundary`: now includes `clauses` parameter, with same usage as in `pgGetGeom`
+
+UPDATES
+
+* `pgWriteRast`: now attempts to write a new SRID to  `spatial_ref_sys`, if one cannot be resolved 
+from the raster's proj4string.
+
+* all query-constructor functions (e.g. `dbDrop`) now return nothing 
+(previously returned TRUE) if `exec = FALSE`.
+
+* `pgGetGeom`: `other.cols = FALSE` now not necessary when reading only
+a geometry column (e.g., in query mode or from a one-column table).
+
+BUG FIXES
+
+* `pgWriteRast`: fixed bug affecting imported raster's metadata regarding the
+upper left pixel location (returned by PostGIS function `ST_UpperLeftX`/`ST_UpperLeftY(rast)`).
+Previously, `pgWriteRast` was erroneously applying the lower left pixel location
+for this value. This did not affect the actual data of the raster, or their usage within PostGIS,
+however it could have affected export of this raster to external files,
+or viewing in a GIS.
+
+* `pgWriteRast`: fixed bug where constraints were not written for
+tables given without a schema name in `name`.
+
+* `pgGetGeom`: fixed bug for one-column `other.cols` specifications
+
+* `dbReadDataFrame`: infolocs columns of type `POSIXlt` now re-import time zone 
+attribute correctly (previously just used database time zone)
+
+
 rpostgis 1.2.1
 ==============
 

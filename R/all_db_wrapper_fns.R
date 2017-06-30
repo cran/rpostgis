@@ -62,7 +62,7 @@ dbAddKey <- function(conn, name, colname, type = c("primary",
     if (display) {
         message(paste0("Query ", ifelse(exec, "", "not "), "executed:"))
         message(tmp.query)
-        message("--")
+        #message("--")
     }
     ## Execute the query
     if (exec) {
@@ -70,7 +70,7 @@ dbAddKey <- function(conn, name, colname, type = c("primary",
         dbSendQuery(conn, tmp.query)
     }
     ## Return TRUE
-    return(TRUE)
+    if(exec) return(TRUE)
 }
 
 ## dbAsDate
@@ -126,7 +126,7 @@ dbAsDate <- function(conn, name, date = "date", tz = NULL, display = TRUE,
     if (display) {
         message(paste0("Query ", ifelse(exec, "", "not "), "executed:"))
         message(tmp.query)
-        message("--")
+        #message("--")
     }
     ## Execute the query and return TRUE
     if (exec) {
@@ -189,7 +189,7 @@ dbColumn <- function(conn, name, colname, action = c("add", "drop"),
     if (display) {
         message(paste0("Query ", ifelse(exec, "", "not "), "executed:"))
         message(tmp.query)
-        message("--")
+        #message("--")
     }
     ## Execute the query
     if (exec) {
@@ -197,7 +197,7 @@ dbColumn <- function(conn, name, colname, action = c("add", "drop"),
         dbSendQuery(conn, tmp.query)
     }
     ## Return TRUE
-    return(TRUE)
+    if(exec) return(TRUE)
 }
 
 ## dbComment
@@ -250,15 +250,15 @@ dbComment <- function(conn, name, comment, type = c("table",
     if (display) {
         message(paste0("Query ", ifelse(exec, "", "not "), "executed:"))
         message(tmp.query)
-        message("--")
+        #message("--")
     }
     ## Execute the query
     if (exec) {
         dbConnCheck(conn)
         dbSendQuery(conn, tmp.query)
     }
-    ## Return nothing
-    return(TRUE)
+    ## Return true
+    if(exec) return(TRUE)
 }
 
 ## dbDrop
@@ -315,15 +315,15 @@ dbDrop <- function(conn, name, type = c("table", "schema", "view", "materialized
     if (display) {
         message(paste0("Query ", ifelse(exec, "", "not "), "executed:"))
         message(tmp.query)
-        message("--")
+        #message("--")
     }
     ## Execute the query
     if (exec) {
         dbConnCheck(conn)
         dbSendQuery(conn, tmp.query)
     }
-    ## Return nothing
-    return(TRUE)
+    ## Return true
+    if(exec) return(TRUE)
 }
 
 ## dbIndex
@@ -395,15 +395,15 @@ dbIndex <- function(conn, name, colname, idxname, unique = FALSE,
     if (display) {
         message(paste0("Query ", ifelse(exec, "", "not "), "executed:"))
         message(tmp.query)
-        message("--")
+        #message("--")
     }
     ## Execute the query
     if (exec) {
         dbConnCheck(conn)
         dbSendQuery(conn, tmp.query)
     }
-    ## Return TRUE
-    return(TRUE)
+    ## Return true
+    if(exec) return(TRUE)
 }
 
 ## dbSchema
@@ -455,13 +455,13 @@ dbSchema <- function(conn, name, display = TRUE, exec = TRUE) {
             message(paste0("Query ", ifelse(exec, "", "not "),
                 "executed:"))
             message(tmp.query)
-            message("--")
+            #message("--")
         }
         ## Execute the query
         if (exec)
             dbSendQuery(conn, tmp.query)
-        ## Return nothing
-        return(TRUE)
+        ## Return true
+        if(exec) return(TRUE)
     }
 }
 
@@ -479,7 +479,7 @@ dbSchema <- function(conn, name, display = TRUE, exec = TRUE) {
 ##'     column names, types, nullable, and maximum length of character
 ##'     columns.
 ##' @return data frame
-##' @author David Bucklin \email{dbucklin@@ufl.edu}
+##' @author David Bucklin \email{david.bucklin@@gmail.com}
 ##' @export
 ##' @examples
 ##' \dontrun{
@@ -549,13 +549,13 @@ dbVacuum <- function(conn, name, full = FALSE, verbose = FALSE,
     if (display) {
         message(paste0("Query ", ifelse(exec, "", "not "), "executed:"))
         message(tmp.query)
-        message("--")
+        #message("--")
     }
     ## Execute the query
     if (exec) {
         dbConnCheck(conn)
         dbSendQuery(conn, tmp.query)
     }
-    ## Return TRUE
-    return(TRUE)
+    ## Return true
+    if(exec) return(TRUE)
 }

@@ -28,6 +28,7 @@
 ##' (faster with large datasets), otherwise the \code{rgeos} function
 ##' \code{writeWKT} is used.
 ##'
+##'
 ##' @param data.obj A Spatial* or Spatial*DataFrame, or data frame for
 ##'     \code{pgInsertize}.
 ##' @param geom character string, the name of geometry column in the
@@ -54,7 +55,7 @@
 ##' @param row.names Whether to add the data frame row names to the 
 ##'     database table. Column name will be '.R_rownames'.
 ##' @param alter.names Logical, whether to make database column names
-##'     DB-compliant (remove special characters). Defualt is
+##'     DB-compliant (remove special characters). Default is
 ##'     \code{TRUE}.  (This should to be set to \code{FALSE} to match
 ##'     to non-standard names in an existing database table using the
 ##'     \code{force.match} setting.)
@@ -70,14 +71,14 @@
 ##'     be ignored (see \code{dbWriteDataFrame} for more information.
 ##' @param geog Logical; Whether to write the spatial data as a PostGIS 
 ##' 'GEOGRPAHY' type.
-##' @author David Bucklin \email{dbucklin@@ufl.edu}
+##' @author David Bucklin \email{david.bucklin@@gmail.com}
 ##' @keywords internal
 ##' @importFrom stats na.omit
 ##' @importFrom rgeos writeWKT
 ##' @importFrom DBI dbDriver
 ##' @return pgi A list containing four character strings: (1)
 ##'     in.table, the table name which will be created or inserted
-##'     into, if specifed by either create.table or force.match (else
+##'     into, if specified by either create.table or force.match (else
 ##'     NULL) (2) db.new.table, the SQL statement to create the new
 ##'     table, if specified in create.table (else NULL), (3)
 ##'     db.cols.insert, a character string of the database column
@@ -224,7 +225,11 @@ pgInsertizeGeom <- function(data.obj, geom = "geom", create.table = NULL,
         
         ###
         if(df.mode) {
-            dat<-dbWriteDataFrame(conn, in.tab, dat , only.defs = TRUE)
+            # add geom column with attribute proj4string
+            eval(parse(text = paste0("dat<-data.frame(dat,.rpostgis.geom.",geom," = 1)")))
+            eval(parse(text = paste0("dat$.rpostgis.geom.",geom," <- '",
+                                     as.character(data.obj@proj4string),"'")))
+            dat <-dbWriteDataFrame(conn, in.tab, dat , only.defs = TRUE)[,1:length(names(dat))-1] # dat.na not used further
           } else {
             # remove existing defs if table exists
             if (dbExistsTable(conn, ".R_df_defs", table.only = TRUE)) {
