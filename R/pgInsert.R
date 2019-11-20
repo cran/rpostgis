@@ -240,7 +240,9 @@ pgInsert <- function(conn, name, data.obj, geom = "geom", df.mode = FALSE, parti
             }
         }
         quet <- NULL
-        try(quet <- dbExecute(conn, pgi$db.new.table))
+        try({
+          for (q in pgi$db.new.table) quet <- dbExecute(conn, q)
+          })
         if (is.null(quet)) {
             dbExecute(conn, "ROLLBACK;")
             message("Table creation failed. No changes made to database.")

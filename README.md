@@ -3,6 +3,9 @@ rpostgis
 
 [CRAN](https://CRAN.R-project.org/package=rpostgis)
 [![Project Status: Active - The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
+[![CRAN Status](http://www.r-pkg.org/badges/version/rpostgis)](https://CRAN.R-project.org/package=rpostgis)
+[![Project Status: Active - The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
+![](https://cranlogs.r-pkg.org/badges/rpostgis)
 
 `rpostgis` provides an interface between R and `PostGIS`-enabled
 `PostgreSQL` databases to transparently transfer spatial data. Both
@@ -42,6 +45,10 @@ For the latest (possibly unstable) development version, use:
 
     conn <- RPostgreSQL::dbConnect("PostgreSQL", host = "localhost", dbname = "<DB_NAME>", 
         user = "<USER>", password = "<PASSWORD>")
+        
+> Note: as of `rpostgis 1.4.3` the `RPostgres::Postgres()` driver is also
+> allowed for connection objects; however, this should be considered
+> experimental and is not recommended for most use cases.
 
 Once the connection is established, the first step is to check if the
 database has `PostGIS` already installed (and install it if it's not

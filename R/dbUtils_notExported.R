@@ -124,6 +124,7 @@ dbExistsTable <- function (conn, name, table.only = FALSE) {
     chk<-dbGetQuery(conn, paste0("SELECT 1 FROM information_schema.tables 
                WHERE table_schema = ",dbQuoteString(conn,full.name[1]),
                " AND table_name = ",dbQuoteString(conn,full.name[2]),to,";"))[1,1]
+    if (length(chk) == 1 && is.na(chk)) chk <- NULL
     if (is.null(chk)) {
       exists.t <- FALSE
       # check version (matviews >= 9.3)
@@ -156,13 +157,12 @@ dbExistsTable <- function (conn, name, table.only = FALSE) {
 ##' @keywords internal
 
 dbConnCheck <- function(conn) {
-  if (inherits(conn, c("PostgreSQLConnection"))) {
+  if (inherits(conn, c("PostgreSQLConnection")) | inherits(conn, "PqConnection")) {
           return(TRUE)
       } else {
-        return(stop("'conn' must be a <PostgreSQLConnection> object."))
+        return(stop("'conn' must be connection object: <PostgreSQLConnection> from `RPostgreSQL`, or <PqConnection> from `RPostgres`"))
       }
 }
-
 
 ## dbGetDefs
 ##' Get definitions for data frame mode reading

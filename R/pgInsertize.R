@@ -227,7 +227,7 @@ pgInsertizeGeom <- function(data.obj, geom = "geom", create.table = NULL,
           add.geom <- paste0("ALTER TABLE ", nt[1], ".", nt[2],
             " ADD COLUMN ", geom, " geography(", pgtype, ");") 
         }
-        new.table <- paste0(new.table, "\n", add.geom)
+        new.table <- c(new.table, add.geom)
         
         ###
         if(df.mode) {

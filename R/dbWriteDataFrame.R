@@ -20,7 +20,7 @@
 #' \code{dbReadDataFrame} and \code{pgGetGeom} will use the metadata
 #' created in data frame mode to recreate a data.frame in R, if it is
 #' available. Otherwise, it will be imported using default
-#' \code{RPostgreSQL::dbReadTable} methods.
+#' \code{RPostgreSQL::dbGetQuery} methods.
 #' 
 #' All \code{Spatial*DataFrame}s must be written with \code{\link[rpostgis]{pgInsert}}.
 #' For more flexible writing of \code{data.frame}s to the database
@@ -158,7 +158,8 @@ dbWriteDataFrame <- function(conn, name, df, overwrite = FALSE,
         ## in pgInsert)
         if (!only.defs) {
             d <- data.frame(.db_pkid = 1:length(d[, 1]), d)
-            dbWriteTable(conn, name, d, row.names = FALSE)
+            # dbWriteTable(conn, name, d, row.names = FALSE) # doesn't work w/ RPostgres
+            pgInsert(conn, name, data.obj = d)
             dbAddKey(conn, name, colname = ".db_pkid", type = "primary")
             message("Data frame written to table ", paste(nameque,
                 collapse = "."), ".")
@@ -188,7 +189,8 @@ dbReadDataFrame <- function(conn, name, df = NULL) {
     if (!dbExistsTable(conn, c(name[1], ".R_df_defs"), table.only = TRUE)) {
         message("R data frame definitions table not found. Using standard import...")
         if (is.null(df)) {
-            df <- dbReadTable(conn, name)
+            nmq <- paste(dbTableNameFix(conn, name, T), collapse = ".")
+            df <- dbGetQuery(conn, paste0("SELECT * FROM ", nmq, ";"))
             if (".R_rownames" %in% colnames(df)) {
               # still read rownames if exist
                try({
@@ -213,7 +215,8 @@ dbReadDataFrame <- function(conn, name, df = NULL) {
         if (length(defs) == 0) {
             message("R data frame definitions not found. Using standard import...")
             if (is.null(df)) {
-                df <- dbReadTable(conn, name)
+                nmq <- paste(dbTableNameFix(conn, name, T), collapse = ".")
+                df <- dbGetQuery(conn, paste0("SELECT * FROM ", nmq, ";"))
                 if (".R_rownames" %in% colnames(df)) {
                   # still read rownames if exist
                   try({
