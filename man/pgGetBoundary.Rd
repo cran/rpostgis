@@ -10,8 +10,7 @@ pgGetBoundary(conn, name, geom = "geom", clauses = NULL, returnclass = "sf")
 \item{conn}{A connection object to a PostgreSQL database}
 
 \item{name}{A character string specifying a PostgreSQL schema and
-table/view name holding the geometry (e.g., \code{name =
-c("schema","table")})}
+table/view name holding the geometry (e.g., \code{name = c("schema","table")})}
 
 \item{geom}{A character string specifying the name of the geometry column
 in the table \code{name} (Default = \code{"geom"}). Note that for raster objects
@@ -21,12 +20,12 @@ you will need to change the default value}
 query from table. Must begin with an SQL clause (e.g., "WHERE ...",
 "ORDER BY ...", "LIMIT ..."); same usage as in \code{pgGetGeom}.}
 
-\item{returnclass}{'sf' by default; 'terra' for \code{SpatVector}; 
+\item{returnclass}{'sf' by default; 'terra' for \code{SpatVector};
 or 'sp' for \code{sp} objects.}
 }
 \value{
-object of class sfc (list-column with geometries); 
-    SpatVector or sp object
+object of class sfc (list-column with geometries);
+SpatVector or sp object
 }
 \description{
 Retrieve bounding envelope (rectangle) of all geometries or
@@ -39,6 +38,6 @@ pgGetBoundary(conn, c("schema", "rasters"), geom = "rast")
 }
 }
 \author{
-David Bucklin \email{david.bucklin@gmail.com} and Adrian Cidre 
+David Bucklin \email{david.bucklin@gmail.com} and Adrian Cidre
 González \email{adrian.cidre@gmail.com}
 }

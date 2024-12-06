@@ -1,16 +1,46 @@
+
+rpostgis 1.6.0
+==============
+
+OVERALL CHANGES
+
+* `pgGetGeom()`, `pgGetBoundary()` now use the SRID for defining the CRS instead of the proj4 code.
+
+* `pgWriteRast()`: argument `progress` have been removed.
+
+* `pgWriteGeom()` now throws an error when CRS is undefined.
+
+* Functions that return a `TRUE` value, now return it invisibly (`pgMakePts()`, )
+
+* Use of `cli` for better user feedback
+
+* `raster` and `sp` are now suggested and not imported by `rpostgis`
+
+* Use `lifecycle` warnings to encourage users to use `sf` and `terra`, and don't use `sp` or `raster` anymore in `rpostgis`.
+
+* `pgSRID()`: now throws an error when CRS is undefined
+
+BUG FIXES
+
+* Fix an error in `dbWriteDataFrame()` that was causing data frames with `dttm` columns to be unable to be written to the database.
+
+OTHER CHANGES
+
+* Update website
+
+
 rpostgis 1.5.1
 ==============
 
 BUG FIXES
 
-* Fix an error in `pgGetRast` that was provoking an error when the raster
-was not imported using `rpostgis`.
+* Fix an error in `pgGetRast` that was provoking an error when the raster was not imported using `rpostgis`.
 
 * Now its required `terra` version >= 1.6.7.
 
 OTHER CHANGES
 
-* The repository of `rpostgis` has been transfered to a new location: [https://github.com/Cidree/rpostgis](https://github.com/Cidree/rpostgis)
+* The repository of `rpostgis` has been transferred to a new location: [https://github.com/Cidree/rpostgis](https://github.com/Cidree/rpostgis)
 
 * The website of the package is now located at [http://cidree.github.io/rpostgis/](http://cidree.github.io/rpostgis/)
 

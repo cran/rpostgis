@@ -15,8 +15,7 @@ pgPostGIS(
 )
 }
 \arguments{
-\item{conn}{A connection object (required, even if \code{exec =
-FALSE}).}
+\item{conn}{A connection object (required, even if \code{exec = FALSE}).}
 
 \item{topology}{Logical. Whether to check/install the Topology
 extension.}
@@ -38,7 +37,7 @@ extension.}
 \code{TRUE}).}
 }
 \value{
-If \code{exec = TRUE}, returns \code{TRUE} if PostGIS is installed.
+If \code{exec = TRUE}, returns (invisibly) \code{TRUE} if PostGIS is installed.
 }
 \description{
 The function checks for the availability of the PostGIS extension,
@@ -56,5 +55,5 @@ SFCGAL and Raster extensions.
 }
 \author{
 Mathieu Basille \email{mathieu@basille.org} and
-        Adrián Cidre González \email{adrian.cidre@gmail.com}
+Adrián Cidre González \email{adrian.cidre@gmail.com}
 }

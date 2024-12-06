@@ -31,7 +31,7 @@ or \code{"schema"}}
 \code{TRUE}).}
 }
 \value{
-If \code{exec = TRUE}, returns \code{TRUE} if the comment was
+If \code{exec = TRUE}, returns (invisibly) \code{TRUE} if the comment was
 successfully applied.
 }
 \description{
@@ -47,7 +47,7 @@ dbComment(conn, name = "test_schema", comment = "Comment on a schema.", type = "
 }
 \seealso{
 The PostgreSQL documentation:
-    \url{http://www.postgresql.org/docs/current/static/sql-comment.html}
+\url{http://www.postgresql.org/docs/current/static/sql-comment.html}
 }
 \author{
 Mathieu Basille \email{mathieu@basille.org}

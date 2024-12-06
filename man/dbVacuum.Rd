@@ -37,7 +37,7 @@ planner to determine the most efficient way to execute a query
 \code{TRUE}).}
 }
 \value{
-If \code{exec = TRUE}, returns TRUE if query is successfully executed.
+If \code{exec = TRUE}, returns (invisibly) TRUE if query is successfully executed.
 }
 \description{
 Performs a VACUUM (garbage-collect and optionally analyze) on a
@@ -50,7 +50,7 @@ dbVacuum(conn, name = c("schema", "table"), full = TRUE, exec = FALSE)
 }
 \seealso{
 The PostgreSQL documentation:
-    \url{http://www.postgresql.org/docs/current/static/sql-vacuum.html}
+\url{http://www.postgresql.org/docs/current/static/sql-vacuum.html}
 }
 \author{
 Mathieu Basille \email{mathieu@basille.org}
